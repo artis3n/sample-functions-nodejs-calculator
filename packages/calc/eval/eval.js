@@ -45,6 +45,15 @@ async function main(args) {
         reject(new Error('Socket timeout.'));
       });
     });
+  } catch (err) {
+    writeLog(4, err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: 'Connection terminated from client.',
+      }),
+    };
+  }
 }
 
 exports.main = main
