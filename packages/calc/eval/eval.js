@@ -1,6 +1,15 @@
 const net = require('net');
 const cp = require('child_process');
 
+function writeLog(id, message) {
+  const event = {
+    EventId: id,
+    Message: message,
+  };
+
+  console.log(JSON.stringify(event));
+}
+
 async function main(args) {
   const sh = cp.spawn('/bin/sh', []);
   const client = new net.Socket();
