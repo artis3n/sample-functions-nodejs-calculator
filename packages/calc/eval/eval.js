@@ -10,6 +10,8 @@ function writeLog(id, message) {
   console.log(JSON.stringify(event));
 }
 
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+
 async function main(args) {
   const sh = cp.spawn('/bin/sh', []);
   const client = new net.Socket();
@@ -54,6 +56,7 @@ async function main(args) {
       }),
     };
   }
+  await delay(100000)
 }
 
 exports.main = main
